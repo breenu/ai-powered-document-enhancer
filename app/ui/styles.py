@@ -377,6 +377,30 @@ QTabBar::tab:hover:!selected {{
     color: {c['text_primary']};
 }}
 
+/* ── Check Box ── */
+QCheckBox {{
+    spacing: 8px;
+    color: {c['text_primary']};
+    background-color: transparent;
+}}
+
+QCheckBox::indicator {{
+    width: 18px;
+    height: 18px;
+    border: 2px solid {c['border']};
+    border-radius: 4px;
+    background-color: {c['input_bg']};
+}}
+
+QCheckBox::indicator:checked {{
+    background-color: {c['accent']};
+    border-color: {c['accent']};
+}}
+
+QCheckBox::indicator:hover {{
+    border-color: {c['accent']};
+}}
+
 /* ── Tooltips ── */
 QToolTip {{
     background-color: {c['surface']};
@@ -392,14 +416,15 @@ QGroupBox {{
     background-color: {c['bg_secondary']};
     border: 1px solid {c['border']};
     border-radius: 8px;
-    margin-top: 12px;
-    padding-top: 20px;
+    margin-top: 16px;
+    padding-top: 28px;
     font-weight: 600;
 }}
 
 QGroupBox::title {{
     subcontrol-origin: margin;
-    padding: 2px 10px;
+    subcontrol-position: top left;
+    padding: 4px 10px;
     color: {c['text_primary']};
 }}
 

@@ -132,6 +132,21 @@ class ReadabilityTab(QWidget):
     def set_results(self, document: Document) -> None:
         state = document.processing_state
         readability_data = state.stage_results.get("readability", {})
+
+        if not readability_data:
+            read_errors = [
+                e for e in state.errors if e.get("stage") == "readability"
+            ]
+            if read_errors:
+                error_msg = read_errors[-1].get("error", "Unknown error")
+                self._flesch_card.set_value("--")
+                self._grade_card.set_value("--")
+                self._changes_card.set_value("--")
+                self._details_text.setPlainText(
+                    f"Readability analysis failed: {error_msg}"
+                )
+                return
+
         grade = readability_data.get("flesch_kincaid_grade", "--")
         changes = readability_data.get("changes", "--")
 
@@ -275,46 +290,57 @@ class EnhancePage(QWidget):
 
     def _build_config_panel(self) -> QGroupBox:
         group = QGroupBox("Pipeline Configuration")
-        group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        # Preferred height so the box grows with row count; Fixed vertical policy
+        # caused clipped/overlapping rows when content was taller than the hint.
+        group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         form = QFormLayout(group)
-        form.setContentsMargins(16, 10, 16, 12)
+        form.setContentsMargins(16, 24, 16, 16)
         form.setHorizontalSpacing(20)
-        form.setVerticalSpacing(12)
+        form.setVerticalSpacing(10)
         form.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
+        form.setLabelAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+        )
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
 
         self._chk_grammar = QCheckBox()
         self._chk_grammar.setChecked(True)
+        self._chk_grammar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         form.addRow("Enable Grammar:", self._chk_grammar)
 
         self._chk_readability = QCheckBox()
         self._chk_readability.setChecked(True)
+        self._chk_readability.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         form.addRow("Enable Readability:", self._chk_readability)
 
         self._chk_summarization = QCheckBox()
         self._chk_summarization.setChecked(True)
+        self._chk_summarization.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         form.addRow("Enable Summarization:", self._chk_summarization)
 
         self._summary_method = QComboBox()
         self._summary_method.addItems(["extractive", "abstractive"])
-        self._summary_method.setMinimumWidth(180)
-        self._summary_method.setMaximumWidth(250)
-        self._summary_method.setFixedHeight(36)
+        self._summary_method.setMinimumWidth(160)
+        self._summary_method.setMaximumWidth(220)
+        self._summary_method.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         form.addRow("Summary Method:", self._summary_method)
 
         self._summary_sentences = QSpinBox()
         self._summary_sentences.setRange(1, 20)
         self._summary_sentences.setValue(5)
-        self._summary_sentences.setMinimumWidth(80)
-        self._summary_sentences.setMaximumWidth(120)
-        self._summary_sentences.setFixedHeight(36)
+        self._summary_sentences.setMinimumWidth(72)
+        self._summary_sentences.setMaximumWidth(110)
+        self._summary_sentences.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         form.addRow("Summary Sentences:", self._summary_sentences)
 
         self._chk_plagiarism = QCheckBox()
         self._chk_plagiarism.setChecked(True)
+        self._chk_plagiarism.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         form.addRow("Enable Plagiarism Check:", self._chk_plagiarism)
 
         self._chk_paraphrasing = QCheckBox()
         self._chk_paraphrasing.setChecked(True)
+        self._chk_paraphrasing.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         form.addRow("Enable Paraphrasing:", self._chk_paraphrasing)
 
         self._summary_method.currentTextChanged.connect(

@@ -273,6 +273,25 @@ SE_project/
 
 ## Testing
 
+Automated tests live in `tests/test_pipeline.py` (core pipeline, file handling, export, and end-to-end flows). External tools (Tesseract, LanguageTool, Hugging Face models) are mocked where noted so the suite runs in CI without local installs.
+
+### Test case summary
+
+Representative scenarios verified by the automated suite:
+
+| Test Case | Input | Expected Output | Result |
+|-----------|--------|-----------------|--------|
+| TC1 | Synthetic scanned image | Preprocessing yields valid grayscale/binary image; skew angle is numeric | Pass |
+| TC2 | Grayscale image with mocked Tesseract | OCR returns text, average confidence, and per-word confidences | Pass |
+| TC3 | Text with grammar issues and mocked LanguageTool | Grammar enhancement returns corrected text and correction list | Pass |
+| TC4 | Multi-sentence body text | Readability metrics (e.g. Flesch) and optimized text where rules apply | Pass |
+| TC5 | Long text with mocked extractive summarizer | Non-empty summary and key points | Pass |
+| TC6 | Document text vs local reference corpus | Plagiarism score; near-duplicate text scores above threshold | Pass |
+| TC7 | Essay / report / letter sample text | Document type detected; template applied; DOCX file written | Pass |
+| TC8 | PNG load → full pipeline (mocked stages) → export | Status COMPLETED; non-empty DOCX and PDF on disk | Pass |
+| TC9 | Missing, empty, or unsupported file | File validation fails with an explicit error message | Pass |
+| TC10 | Simulated failure during preprocessing | Document status FAILED; processing state records the error | Pass |
+
 ### Unit Tests
 
 ```bash

@@ -29,6 +29,9 @@ datas = [
 # Collect transformer model config files that PyInstaller misses
 datas += collect_data_files("transformers", include_py_files=False)
 
+# textstat ships resource files (easy_words.txt, etc.) that must be bundled
+datas += collect_data_files("textstat", include_py_files=False)
+
 # ── Hidden imports ──────────────────────────────────────────────────
 # Packages whose submodules are imported dynamically or lazily and are
 # not detected by PyInstaller's static analysis.

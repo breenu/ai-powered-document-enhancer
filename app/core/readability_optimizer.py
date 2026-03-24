@@ -65,6 +65,21 @@ class ReadabilityOptimizer:
     def analyze(self, text: str) -> ReadabilityMetrics:
         import textstat
 
+        if not text or not text.strip():
+            logger.warning("Empty text provided for readability analysis")
+            return ReadabilityMetrics()
+
+        word_count = textstat.lexicon_count(text, removepunct=True)
+        sentence_count = textstat.sentence_count(text)
+        if word_count < 3 or sentence_count < 1:
+            logger.warning(
+                "Text too short for reliable readability analysis "
+                "(%d words, %d sentences)", word_count, sentence_count,
+            )
+            return ReadabilityMetrics(
+                word_count=word_count, sentence_count=sentence_count,
+            )
+
         return ReadabilityMetrics(
             flesch_reading_ease=textstat.flesch_reading_ease(text),
             flesch_kincaid_grade=textstat.flesch_kincaid_grade(text),
@@ -74,8 +89,8 @@ class ReadabilityOptimizer:
             automated_readability=textstat.automated_readability_index(text),
             dale_chall=textstat.dale_chall_readability_score(text),
             text_standard=textstat.text_standard(text, float_output=False),
-            word_count=textstat.lexicon_count(text, removepunct=True),
-            sentence_count=textstat.sentence_count(text),
+            word_count=word_count,
+            sentence_count=sentence_count,
             avg_sentence_length=textstat.avg_sentence_length(text),
         )
 
