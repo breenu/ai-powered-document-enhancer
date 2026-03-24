@@ -4,12 +4,33 @@ try:
     from PySide6.QtCore import Qt, Signal
     from PySide6.QtWidgets import (
         QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-        QFrame, QSizePolicy, QScrollArea,
+        QFrame, QSizePolicy, QScrollArea, QGridLayout,
     )
 except ImportError:
     pass
 
-from app.ui.widgets import StatusCard, SectionHeader, StyledButton
+from app.ui.widgets import StyledButton
+
+_FEATURES = [
+    ("\U0001F50D", "OCR Engine",
+     "Extract text from images and scanned documents with high accuracy",
+     "#7c6ff0"),
+    ("\u2713", "Grammar Check",
+     "Automatic grammar and spelling correction powered by AI",
+     "#4caf7a"),
+    ("Aa", "Readability",
+     "Flesch\u2013Kincaid scoring and text simplification tools",
+     "#e8a838"),
+    ("\u03A3", "Summarization",
+     "Extractive and abstractive text summaries at any length",
+     "#5bc0de"),
+    ("\u229E", "Plagiarism",
+     "Local TF-IDF similarity checking across documents",
+     "#e05555"),
+    ("\u2197", "Export",
+     "DOCX and PDF export with professional formatting",
+     "#9b59b6"),
+]
 
 
 class HomePage(QWidget):
@@ -28,11 +49,10 @@ class HomePage(QWidget):
 
         content = QWidget()
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(32, 24, 32, 24)
-        layout.setSpacing(20)
+        layout.setContentsMargins(40, 32, 40, 32)
+        layout.setSpacing(28)
 
         layout.addWidget(self._build_hero())
-        layout.addWidget(self._build_quick_actions())
         layout.addWidget(self._build_features())
         layout.addStretch()
 
@@ -43,13 +63,22 @@ class HomePage(QWidget):
         outer.addWidget(scroll)
 
     def _build_hero(self) -> QWidget:
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setSpacing(8)
+        card = QFrame()
+        card.setObjectName("heroCard")
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(40, 36, 40, 36)
+        layout.setSpacing(12)
+
+        badge = QLabel("\u2726  DocEnhance AI")
+        badge.setObjectName("heroBadge")
+        badge_row = QHBoxLayout()
+        badge_row.addWidget(badge)
+        badge_row.addStretch()
+        layout.addLayout(badge_row)
 
         title = QLabel("AI Document Enhancement System")
-        title.setObjectName("pageTitle")
-        title.setAlignment(Qt.AlignCenter)
+        title.setObjectName("heroTitle")
         layout.addWidget(title)
 
         subtitle = QLabel(
@@ -57,93 +86,91 @@ class HomePage(QWidget):
             "and enhance them with grammar correction, readability "
             "optimization, summarization, and more."
         )
-        subtitle.setObjectName("subtitle")
-        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setObjectName("heroSubtitle")
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
 
-        return container
-
-    def _build_quick_actions(self) -> QWidget:
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setSpacing(12)
-
-        layout.addWidget(SectionHeader("Quick Actions"))
+        layout.addSpacing(8)
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(12)
 
         upload_btn = StyledButton("Upload Document")
         upload_btn.setMinimumHeight(44)
-        upload_btn.clicked.connect(lambda: self.navigate_requested.emit("upload"))
+        upload_btn.setMinimumWidth(180)
+        upload_btn.clicked.connect(
+            lambda: self.navigate_requested.emit("upload"),
+        )
         btn_row.addWidget(upload_btn)
 
         settings_btn = StyledButton("Settings", variant="secondary")
         settings_btn.setMinimumHeight(44)
-        settings_btn.clicked.connect(lambda: self.navigate_requested.emit("settings"))
+        settings_btn.setMinimumWidth(120)
+        settings_btn.clicked.connect(
+            lambda: self.navigate_requested.emit("settings"),
+        )
         btn_row.addWidget(settings_btn)
 
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
-        return container
+        return card
 
     def _build_features(self) -> QWidget:
         container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setSpacing(12)
+        container.setStyleSheet("background: transparent;")
+        v_layout = QVBoxLayout(container)
+        v_layout.setContentsMargins(0, 0, 0, 0)
+        v_layout.setSpacing(16)
 
-        layout.addWidget(SectionHeader("Features"))
+        header = QLabel("Features")
+        header.setObjectName("sectionTitle")
+        v_layout.addWidget(header)
 
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(12)
+        grid = QGridLayout()
+        grid.setSpacing(16)
 
-        features = [
-            ("OCR Engine", "Extract text from images\nand scanned documents"),
-            ("Grammar Check", "Automatic grammar and\nspelling correction"),
-            ("Readability", "Flesch-Kincaid scoring\nand simplification"),
-            ("Summarization", "Extractive & abstractive\ntext summaries"),
-            ("Plagiarism", "Local TF-IDF similarity\nchecking"),
-            ("Export", "DOCX and PDF export\nwith formatting"),
-        ]
+        for idx, (icon, title, desc, color) in enumerate(_FEATURES):
+            card = self._feature_card(icon, title, desc, color)
+            row, col = divmod(idx, 3)
+            grid.addWidget(card, row, col)
 
-        for title, desc in features:
-            card = self._feature_card(title, desc)
-            cards_row.addWidget(card)
-
-        layout.addLayout(cards_row)
+        v_layout.addLayout(grid)
         return container
 
     @staticmethod
-    def _feature_card(title: str, description: str) -> QFrame:
+    def _feature_card(icon_text: str, title: str, description: str,
+                      accent: str) -> QFrame:
         card = QFrame()
-        card.setFrameShape(QFrame.StyledPanel)
-        card.setObjectName("statusCard")
-        card.setStyleSheet("""
-            QFrame#statusCard {
-                border: 1px solid palette(mid);
-                border-radius: 8px;
-                padding: 12px;
-            }
-        """)
-        card.setMinimumWidth(150)
+        card.setObjectName("featureCard")
+        card.setMinimumHeight(150)
         card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(6)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(10)
+
+        icon_label = QLabel(icon_text)
+        icon_label.setAlignment(Qt.AlignCenter)
+        icon_label.setFixedSize(42, 42)
+        icon_label.setStyleSheet(
+            f"background-color: {accent}; color: #ffffff; "
+            f"border-radius: 21px; font-size: 18px; font-weight: 700;"
+        )
+
+        icon_row = QHBoxLayout()
+        icon_row.addWidget(icon_label)
+        icon_row.addStretch()
+        layout.addLayout(icon_row)
 
         lbl_title = QLabel(title)
-        font = lbl_title.font()
-        font.setBold(True)
-        font.setPointSize(12)
-        lbl_title.setFont(font)
+        lbl_title.setObjectName("featureTitle")
         layout.addWidget(lbl_title)
 
         lbl_desc = QLabel(description)
-        lbl_desc.setObjectName("subtitle")
+        lbl_desc.setObjectName("featureDesc")
         lbl_desc.setWordWrap(True)
         layout.addWidget(lbl_desc)
 
+        layout.addStretch()
         return card

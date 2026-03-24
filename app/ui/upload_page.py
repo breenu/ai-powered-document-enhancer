@@ -55,8 +55,12 @@ class UploadPage(QWidget):
         self._drop_zone.files_dropped.connect(self._on_files_dropped)
         layout.addWidget(self._drop_zone)
 
+        layout.addSpacing(4)
+
         btn_row = QHBoxLayout()
+        btn_row.setContentsMargins(0, 0, 0, 0)
         self._browse_btn = StyledButton("Browse Files", variant="secondary")
+        self._browse_btn.setMinimumHeight(38)
         self._browse_btn.clicked.connect(self._browse_files)
         btn_row.addWidget(self._browse_btn)
         btn_row.addStretch()

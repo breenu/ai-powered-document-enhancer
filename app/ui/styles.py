@@ -194,6 +194,74 @@ QComboBox QAbstractItemView {{
     selection-color: #ffffff;
 }}
 
+/* ── Spin Box ── */
+QSpinBox, QDoubleSpinBox {{
+    background-color: {c['input_bg']};
+    color: {c['text_primary']};
+    border: 1px solid {c['border']};
+    border-radius: 6px;
+    padding: 6px 10px;
+    min-height: 24px;
+}}
+
+QSpinBox:hover, QDoubleSpinBox:hover {{
+    border: 1px solid {c['accent']};
+}}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {{
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 22px;
+    border: none;
+    border-left: 1px solid {c['border']};
+    border-top-right-radius: 6px;
+    background-color: {c['bg_tertiary']};
+}}
+
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover {{
+    background-color: {c['surface']};
+}}
+
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid {c['text_secondary']};
+    width: 0px;
+    height: 0px;
+}}
+
+QSpinBox::up-arrow:hover, QDoubleSpinBox::up-arrow:hover {{
+    border-bottom-color: {c['text_primary']};
+}}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {{
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 22px;
+    border: none;
+    border-left: 1px solid {c['border']};
+    border-bottom-right-radius: 6px;
+    background-color: {c['bg_tertiary']};
+}}
+
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {{
+    background-color: {c['surface']};
+}}
+
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid {c['text_secondary']};
+    width: 0px;
+    height: 0px;
+}}
+
+QSpinBox::down-arrow:hover, QDoubleSpinBox::down-arrow:hover {{
+    border-top-color: {c['text_primary']};
+}}
+
 /* ── Progress Bar ── */
 QProgressBar {{
     background-color: {c['bg_tertiary']};
@@ -343,6 +411,61 @@ QSplitter::handle {{
 /* ── Message Box ── */
 QMessageBox {{
     background-color: {c['bg_secondary']};
+}}
+
+/* ── Home page hero card ── */
+QFrame#heroCard {{
+    background-color: {c['bg_secondary']};
+    border: 1px solid {c['border']};
+    border-radius: 16px;
+}}
+
+QLabel#heroTitle {{
+    font-size: 28px;
+    font-weight: 700;
+    background: transparent;
+    padding: 0;
+}}
+
+QLabel#heroSubtitle {{
+    font-size: 15px;
+    color: {c['text_secondary']};
+    background: transparent;
+}}
+
+QLabel#heroBadge {{
+    background-color: rgba(124, 111, 240, 0.15);
+    color: {c['accent']};
+    border-radius: 12px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 600;
+}}
+
+/* ── Home page feature cards ── */
+QFrame#featureCard {{
+    background-color: {c['bg_secondary']};
+    border: 1px solid {c['border']};
+    border-radius: 12px;
+}}
+
+QLabel#sectionTitle {{
+    font-size: 20px;
+    font-weight: 700;
+    background: transparent;
+    padding: 0;
+}}
+
+QLabel#featureTitle {{
+    font-size: 15px;
+    font-weight: 700;
+    background: transparent;
+}}
+
+QLabel#featureDesc {{
+    font-size: 13px;
+    color: {c['text_secondary']};
+    background: transparent;
 }}
 """
 

@@ -117,7 +117,7 @@ class Document:
         valid_transitions = {
             DocumentStatus.UPLOADED: [DocumentStatus.PREPROCESSING, DocumentStatus.FAILED],
             DocumentStatus.PREPROCESSING: [DocumentStatus.OCR_PROCESSING, DocumentStatus.FAILED],
-            DocumentStatus.OCR_PROCESSING: [DocumentStatus.REVIEW, DocumentStatus.FAILED],
+            DocumentStatus.OCR_PROCESSING: [DocumentStatus.REVIEW, DocumentStatus.ENHANCING, DocumentStatus.FAILED],
             DocumentStatus.REVIEW: [DocumentStatus.ENHANCING, DocumentStatus.FAILED],
             DocumentStatus.ENHANCING: [DocumentStatus.COMPLETED, DocumentStatus.FAILED],
             DocumentStatus.COMPLETED: [],

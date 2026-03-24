@@ -92,23 +92,65 @@ class Pipeline:
     def _enhance_text(self, text: str,
                       document: Document) -> str:
         """Run grammar, readability, summarization, plagiarism, paraphrasing,
-        and formatting stages on extracted text. Returns the enhanced text."""
+        and formatting stages on extracted text. Returns the enhanced text.
+
+        Each stage is wrapped in its own try/except so that a failure in one
+        stage (e.g. LanguageTool not available) does not prevent the remaining
+        stages from running.
+        """
         current_text = text
 
         if self.config.enable_grammar:
             self._check_cancelled()
             document.processing_state.begin_stage(PipelineStage.GRAMMAR)
-            document.update_status(DocumentStatus.ENHANCING)
+            if document.status == DocumentStatus.OCR_PROCESSING:
+                document.update_status(DocumentStatus.ENHANCING)
             self._notify(PipelineStage.GRAMMAR, 0, "Checking grammar...")
-            grammar_result = self.grammar_enhancer.enhance(current_text)
-            current_text = grammar_result.corrected_text
-            document.processing_state.complete_stage(PipelineStage.GRAMMAR, {
-                "corrections": grammar_result.total_errors,
-            })
-            self._notify(
-                PipelineStage.GRAMMAR, 100,
-                f"Grammar: {grammar_result.total_errors} corrections",
-            )
+            try:
+                grammar_result = self.grammar_enhancer.enhance(current_text)
+                current_text = grammar_result.corrected_text
+
+                from app.models.document import GrammarCorrection
+                for c in grammar_result.corrections:
+                    document.add_grammar_correction(GrammarCorrection(
+                        original=c.original,
+                        corrected=c.corrected,
+                        rule_id=c.rule_id,
+                        message=c.message,
+                        offset=c.offset,
+                        length=c.length,
+                        category=c.category,
+                    ))
+
+                document.processing_state.complete_stage(PipelineStage.GRAMMAR, {
+                    "corrections": grammar_result.total_errors,
+                    "categories": grammar_result.categories,
+                    "correction_details": [
+                        {
+                            "original": c.original,
+                            "corrected": c.corrected,
+                            "message": c.message,
+                            "category": c.category,
+                            "context": c.context,
+                        }
+                        for c in grammar_result.corrections
+                    ],
+                })
+                self._notify(
+                    PipelineStage.GRAMMAR, 100,
+                    f"Grammar: {grammar_result.total_errors} corrections",
+                )
+            except InterruptedError:
+                raise
+            except Exception as e:
+                logger.error("Grammar stage failed: %s", e)
+                document.processing_state.record_error(
+                    PipelineStage.GRAMMAR, str(e),
+                )
+                self._notify(PipelineStage.GRAMMAR, 100, "Grammar check failed")
+
+        if document.status == DocumentStatus.OCR_PROCESSING:
+            document.update_status(DocumentStatus.ENHANCING)
 
         if self.config.enable_readability:
             self._check_cancelled()
@@ -116,28 +158,37 @@ class Pipeline:
             self._notify(
                 PipelineStage.READABILITY, 0, "Optimizing readability...",
             )
-            readability_result = self.readability_optimizer.optimize(
-                current_text,
-                target_grade=self.config.target_readability_grade,
-            )
-            current_text = readability_result.optimized_text
-            document.set_readability_score(
-                max(0, min(
-                    100,
-                    readability_result.optimized_metrics.flesch_reading_ease,
-                )),
-            )
-            document.processing_state.complete_stage(
-                PipelineStage.READABILITY, {
-                    "flesch_kincaid_grade": (
-                        readability_result.optimized_metrics.flesch_kincaid_grade
-                    ),
-                    "changes": len(readability_result.changes_made),
-                },
-            )
-            self._notify(
-                PipelineStage.READABILITY, 100, "Readability optimized",
-            )
+            try:
+                readability_result = self.readability_optimizer.optimize(
+                    current_text,
+                    target_grade=self.config.target_readability_grade,
+                )
+                current_text = readability_result.optimized_text
+                document.set_readability_score(
+                    max(0, min(
+                        100,
+                        readability_result.optimized_metrics.flesch_reading_ease,
+                    )),
+                )
+                document.processing_state.complete_stage(
+                    PipelineStage.READABILITY, {
+                        "flesch_kincaid_grade": (
+                            readability_result.optimized_metrics.flesch_kincaid_grade
+                        ),
+                        "changes": len(readability_result.changes_made),
+                    },
+                )
+                self._notify(
+                    PipelineStage.READABILITY, 100, "Readability optimized",
+                )
+            except InterruptedError:
+                raise
+            except Exception as e:
+                logger.error("Readability stage failed: %s", e)
+                document.processing_state.record_error(
+                    PipelineStage.READABILITY, str(e),
+                )
+                self._notify(PipelineStage.READABILITY, 100, "Readability failed")
 
         document.set_enhanced_text(current_text)
 
@@ -145,21 +196,32 @@ class Pipeline:
             self._check_cancelled()
             document.processing_state.begin_stage(PipelineStage.SUMMARIZATION)
             self._notify(PipelineStage.SUMMARIZATION, 0, "Summarizing...")
-            summary_result = self.summarizer.summarize(
-                current_text,
-                method=self.config.summarization_method,
-                sentence_count=self.config.summary_sentences,
-            )
-            document.set_summary(summary_result.summary)
-            document.processing_state.complete_stage(
-                PipelineStage.SUMMARIZATION, {
-                    "method": summary_result.method,
-                    "compression_ratio": summary_result.compression_ratio,
-                },
-            )
-            self._notify(
-                PipelineStage.SUMMARIZATION, 100, "Summarization complete",
-            )
+            try:
+                summary_result = self.summarizer.summarize(
+                    current_text,
+                    method=self.config.summarization_method,
+                    sentence_count=self.config.summary_sentences,
+                )
+                document.set_summary(summary_result.summary)
+                document.processing_state.complete_stage(
+                    PipelineStage.SUMMARIZATION, {
+                        "method": summary_result.method,
+                        "compression_ratio": summary_result.compression_ratio,
+                    },
+                )
+                self._notify(
+                    PipelineStage.SUMMARIZATION, 100, "Summarization complete",
+                )
+            except InterruptedError:
+                raise
+            except Exception as e:
+                logger.error("Summarization stage failed: %s", e)
+                document.processing_state.record_error(
+                    PipelineStage.SUMMARIZATION, str(e),
+                )
+                self._notify(
+                    PipelineStage.SUMMARIZATION, 100, "Summarization failed",
+                )
 
         if self.config.enable_plagiarism:
             self._check_cancelled()
@@ -167,40 +229,51 @@ class Pipeline:
             self._notify(
                 PipelineStage.PLAGIARISM_CHECK, 0, "Checking plagiarism...",
             )
-            plag_result = self.plagiarism_checker.check(current_text)
-            document.set_plagiarism_score(plag_result.overall_score)
-            document.processing_state.complete_stage(
-                PipelineStage.PLAGIARISM_CHECK, {
-                    "overall_score": plag_result.overall_score,
-                    "matches": len(plag_result.matches),
-                },
-            )
-            self._notify(
-                PipelineStage.PLAGIARISM_CHECK, 100,
-                f"Plagiarism: {plag_result.overall_score:.1f}%",
-            )
-
-            if (
-                self.config.enable_paraphrasing
-                and plag_result.flagged_sentences
-            ):
-                self._check_cancelled()
-                document.processing_state.begin_stage(PipelineStage.PARAPHRASING)
-                self._notify(
-                    PipelineStage.PARAPHRASING, 0,
-                    "Generating paraphrases...",
-                )
-                paraphrase_results = self.paraphraser.paraphrase_flagged(
-                    plag_result.flagged_sentences,
-                    num_suggestions=self.config.num_paraphrase_suggestions,
-                )
+            try:
+                plag_result = self.plagiarism_checker.check(current_text)
+                document.set_plagiarism_score(plag_result.overall_score)
                 document.processing_state.complete_stage(
-                    PipelineStage.PARAPHRASING, {
-                        "passages_paraphrased": len(paraphrase_results),
+                    PipelineStage.PLAGIARISM_CHECK, {
+                        "overall_score": plag_result.overall_score,
+                        "matches": len(plag_result.matches),
                     },
                 )
                 self._notify(
-                    PipelineStage.PARAPHRASING, 100, "Paraphrasing complete",
+                    PipelineStage.PLAGIARISM_CHECK, 100,
+                    f"Plagiarism: {plag_result.overall_score:.1f}%",
+                )
+
+                if (
+                    self.config.enable_paraphrasing
+                    and plag_result.flagged_sentences
+                ):
+                    self._check_cancelled()
+                    document.processing_state.begin_stage(PipelineStage.PARAPHRASING)
+                    self._notify(
+                        PipelineStage.PARAPHRASING, 0,
+                        "Generating paraphrases...",
+                    )
+                    paraphrase_results = self.paraphraser.paraphrase_flagged(
+                        plag_result.flagged_sentences,
+                        num_suggestions=self.config.num_paraphrase_suggestions,
+                    )
+                    document.processing_state.complete_stage(
+                        PipelineStage.PARAPHRASING, {
+                            "passages_paraphrased": len(paraphrase_results),
+                        },
+                    )
+                    self._notify(
+                        PipelineStage.PARAPHRASING, 100, "Paraphrasing complete",
+                    )
+            except InterruptedError:
+                raise
+            except Exception as e:
+                logger.error("Plagiarism/paraphrasing stage failed: %s", e)
+                document.processing_state.record_error(
+                    PipelineStage.PLAGIARISM_CHECK, str(e),
+                )
+                self._notify(
+                    PipelineStage.PLAGIARISM_CHECK, 100, "Plagiarism check failed",
                 )
 
         if self.config.enable_formatting:

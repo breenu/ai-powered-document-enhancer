@@ -4,11 +4,12 @@ import logging
 from typing import Optional
 
 try:
-    from PySide6.QtCore import Qt, Signal
+    from PySide6.QtCore import Qt, Signal, QObject, QRunnable, QThreadPool
     from PySide6.QtWidgets import (
         QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit,
         QTabWidget, QFrame, QComboBox, QSpinBox, QCheckBox,
         QDoubleSpinBox, QGroupBox, QFormLayout, QScrollArea,
+        QSizePolicy,
     )
 except ImportError:
     pass
@@ -28,40 +29,76 @@ class GrammarTab(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        layout.addWidget(QLabel("Grammar corrections applied during processing:"))
-
-        self._results_text = QTextEdit()
-        self._results_text.setReadOnly(True)
-        self._results_text.setPlaceholderText(
-            "Grammar correction results will appear here after processing..."
-        )
-        layout.addWidget(self._results_text)
-
         stats_row = QHBoxLayout()
+        stats_row.setSpacing(12)
         self._corrections_card = StatusCard("Corrections", "--")
+        self._categories_card = StatusCard("Categories", "--")
         stats_row.addWidget(self._corrections_card)
+        stats_row.addWidget(self._categories_card)
         stats_row.addStretch()
         layout.addLayout(stats_row)
+
+        layout.addWidget(QLabel("Individual corrections:"))
+
+        self._details_text = QTextEdit()
+        self._details_text.setReadOnly(True)
+        self._details_text.setPlaceholderText(
+            "Grammar correction details will appear here after processing..."
+        )
+        layout.addWidget(self._details_text, stretch=1)
 
     def set_results(self, document: Document) -> None:
         state = document.processing_state
         grammar_data = state.stage_results.get("grammar", {})
-        corrections = grammar_data.get("corrections", 0)
-        self._corrections_card.set_value(str(corrections))
+        count = grammar_data.get("corrections", 0)
+        categories = grammar_data.get("categories", {})
+        details = grammar_data.get("correction_details", [])
 
-        if document.enhanced_text and document.raw_text:
-            self._results_text.setHtml(
-                f"<b>Original text preview:</b><br>"
-                f"<pre style='color:#e05555'>{_truncate(document.raw_text, 500)}</pre>"
-                f"<br><b>Enhanced text preview:</b><br>"
-                f"<pre style='color:#4caf7a'>{_truncate(document.enhanced_text, 500)}</pre>"
+        self._corrections_card.set_value(str(count))
+        self._categories_card.set_value(str(len(categories)))
+
+        if not details and count == 0:
+            self._details_text.setPlainText("No grammar issues found.")
+            return
+
+        html_parts = []
+        for i, d in enumerate(details, 1):
+            orig = _escape_html(d.get("original", ""))
+            fixed = _escape_html(d.get("corrected", ""))
+            msg = _escape_html(d.get("message", ""))
+            cat = _escape_html(d.get("category", "Other"))
+            ctx = _escape_html(d.get("context", ""))
+
+            html_parts.append(
+                f"<div style='margin-bottom:12px; padding:8px; "
+                f"border-left:3px solid #7c6ff0; background:rgba(124,111,240,0.06); "
+                f"border-radius:4px;'>"
+                f"<b style='color:#a0a0b8;'>#{i}</b> "
+                f"<span style='color:#a0a0b8; font-size:11px;'>[{cat}]</span><br>"
+                f"<span style='color:#e05555; text-decoration:line-through;'>{orig}</span>"
+                f" &rarr; "
+                f"<span style='color:#4caf7a; font-weight:bold;'>{fixed}</span><br>"
+                f"<span style='color:#b0b0c0; font-size:11px;'>{msg}</span>"
+                f"</div>"
             )
-        elif corrections == 0:
-            self._results_text.setPlainText("No grammar issues found.")
+
+        if categories:
+            cat_summary = " &nbsp;|&nbsp; ".join(
+                f"<b>{_escape_html(k)}</b>: {v}" for k, v in categories.items()
+            )
+            html_parts.insert(
+                0,
+                f"<div style='margin-bottom:14px; padding:6px; "
+                f"color:#b0b0c0; font-size:11px;'>"
+                f"Category breakdown: {cat_summary}</div>",
+            )
+
+        self._details_text.setHtml("".join(html_parts))
 
     def clear(self) -> None:
-        self._results_text.clear()
+        self._details_text.clear()
         self._corrections_card.set_value("--")
+        self._categories_card.set_value("--")
 
 
 class ReadabilityTab(QWidget):
@@ -75,7 +112,8 @@ class ReadabilityTab(QWidget):
         layout.addWidget(QLabel("Readability analysis and optimization results:"))
 
         stats_row = QHBoxLayout()
-        self._flesch_card = StatusCard("Flesch Reading Ease", "--")
+        stats_row.setSpacing(12)
+        self._flesch_card = StatusCard("Flesch Score", "--")
         self._grade_card = StatusCard("Grade Level", "--")
         self._changes_card = StatusCard("Simplifications", "--")
         stats_row.addWidget(self._flesch_card)
@@ -129,6 +167,7 @@ class SummarizationTab(QWidget):
         layout.addWidget(QLabel("Document summary:"))
 
         stats_row = QHBoxLayout()
+        stats_row.setSpacing(12)
         self._method_card = StatusCard("Method", "--")
         self._ratio_card = StatusCard("Compression", "--")
         stats_row.addWidget(self._method_card)
@@ -155,12 +194,50 @@ class SummarizationTab(QWidget):
         if document.summary_text:
             self._summary_text.setPlainText(document.summary_text)
         else:
-            self._summary_text.setPlainText("No summary available.")
+            summ_errors = [
+                e for e in state.errors if e.get("stage") == "summarization"
+            ]
+            if summ_errors:
+                self._summary_text.setPlainText(
+                    f"Summarization failed: {summ_errors[-1].get('error', 'Unknown error')}"
+                )
+            else:
+                self._summary_text.setPlainText("No summary available.")
 
     def clear(self) -> None:
         self._method_card.set_value("--")
         self._ratio_card.set_value("--")
         self._summary_text.clear()
+
+
+class _ResummarizeSignals(QObject):
+    finished = Signal(object)
+    error = Signal(str)
+
+
+class _ResummarizeWorker(QRunnable):
+    """Lightweight worker that re-runs only the summarization stage."""
+
+    def __init__(self, text: str, method: str, sentence_count: int):
+        super().__init__()
+        self.signals = _ResummarizeSignals()
+        self.text = text
+        self.method = method
+        self.sentence_count = sentence_count
+        self.setAutoDelete(True)
+
+    def run(self) -> None:
+        try:
+            from app.core.summarizer import Summarizer
+            summarizer = Summarizer()
+            result = summarizer.summarize(
+                self.text,
+                method=self.method,
+                sentence_count=self.sentence_count,
+            )
+            self.signals.finished.emit(result)
+        except Exception as exc:
+            self.signals.error.emit(str(exc))
 
 
 class EnhancePage(QWidget):
@@ -171,6 +248,7 @@ class EnhancePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._document: Optional[Document] = None
+        self._resummarize_worker: Optional[_ResummarizeWorker] = None
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -197,7 +275,12 @@ class EnhancePage(QWidget):
 
     def _build_config_panel(self) -> QGroupBox:
         group = QGroupBox("Pipeline Configuration")
+        group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         form = QFormLayout(group)
+        form.setContentsMargins(16, 10, 16, 12)
+        form.setHorizontalSpacing(20)
+        form.setVerticalSpacing(12)
+        form.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
 
         self._chk_grammar = QCheckBox()
         self._chk_grammar.setChecked(True)
@@ -213,11 +296,17 @@ class EnhancePage(QWidget):
 
         self._summary_method = QComboBox()
         self._summary_method.addItems(["extractive", "abstractive"])
+        self._summary_method.setMinimumWidth(180)
+        self._summary_method.setMaximumWidth(250)
+        self._summary_method.setFixedHeight(36)
         form.addRow("Summary Method:", self._summary_method)
 
         self._summary_sentences = QSpinBox()
         self._summary_sentences.setRange(1, 20)
         self._summary_sentences.setValue(5)
+        self._summary_sentences.setMinimumWidth(80)
+        self._summary_sentences.setMaximumWidth(120)
+        self._summary_sentences.setFixedHeight(36)
         form.addRow("Summary Sentences:", self._summary_sentences)
 
         self._chk_plagiarism = QCheckBox()
@@ -227,6 +316,13 @@ class EnhancePage(QWidget):
         self._chk_paraphrasing = QCheckBox()
         self._chk_paraphrasing.setChecked(True)
         form.addRow("Enable Paraphrasing:", self._chk_paraphrasing)
+
+        self._summary_method.currentTextChanged.connect(
+            self._on_summary_config_changed,
+        )
+        self._summary_sentences.valueChanged.connect(
+            self._on_summary_config_changed,
+        )
 
         return group
 
@@ -253,8 +349,61 @@ class EnhancePage(QWidget):
         self._readability_tab.clear()
         self._summarization_tab.clear()
 
+    # ── Live re-summarization ─────────────────────────────────────────
+
+    def _on_summary_config_changed(self) -> None:
+        """Re-run summarization when the user changes method or sentence count."""
+        if not self._document:
+            return
+        text = self._document.enhanced_text or self._document.raw_text
+        if not text:
+            return
+        self._re_summarize(text)
+
+    def _re_summarize(self, text: str) -> None:
+        method = self._summary_method.currentText()
+        sentence_count = self._summary_sentences.value()
+
+        self._summarization_tab._method_card.set_value("...")
+        self._summarization_tab._ratio_card.set_value("...")
+        self._summarization_tab._summary_text.setPlainText(
+            "Re-summarizing with method: " + method + "..."
+        )
+
+        worker = _ResummarizeWorker(text, method, sentence_count)
+        worker.signals.finished.connect(self._on_resummarize_finished)
+        worker.signals.error.connect(self._on_resummarize_error)
+        self._resummarize_worker = worker
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_resummarize_finished(self, result) -> None:
+        if not self._document:
+            return
+        self._document.set_summary(result.summary)
+        self._document.processing_state.stage_results["summarization"] = {
+            "method": result.method,
+            "compression_ratio": result.compression_ratio,
+        }
+        self._summarization_tab.set_results(self._document)
+
+    def _on_resummarize_error(self, error_msg: str) -> None:
+        self._summarization_tab._method_card.set_value("--")
+        self._summarization_tab._ratio_card.set_value("--")
+        self._summarization_tab._summary_text.setPlainText(
+            f"Summarization failed: {error_msg}"
+        )
+
 
 def _truncate(text: str, max_len: int) -> str:
     if len(text) <= max_len:
         return text
     return text[:max_len] + "..."
+
+
+def _escape_html(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )

@@ -14,6 +14,53 @@ except ImportError:
     pass
 
 
+def _recolor_svg(svg_path: str, color: str, size: int = 24) -> "QPixmap":
+    """Load an SVG, replace ``currentColor`` with *color*, return a QPixmap."""
+    try:
+        with open(svg_path, "r", encoding="utf-8") as fh:
+            data = fh.read()
+        data = data.replace("currentColor", color)
+
+        from PySide6.QtCore import QByteArray
+
+        byte_array = QByteArray(data.encode("utf-8"))
+        try:
+            from PySide6.QtSvg import QSvgRenderer
+
+            renderer = QSvgRenderer(byte_array)
+            pm = QPixmap(size, size)
+            pm.fill(QColor(0, 0, 0, 0))
+            painter = QPainter(pm)
+            renderer.render(painter)
+            painter.end()
+            return pm
+        except ImportError:
+            pm = QPixmap()
+            pm.loadFromData(byte_array)
+            return pm.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    except Exception:
+        return QPixmap()
+
+
+def load_themed_icon(
+    svg_path: str,
+    normal_color: str = "#a0a0b8",
+    active_color: str = "#ffffff",
+    size: int = 24,
+) -> "QIcon":
+    """Create a QIcon with separate colours for normal and checked states."""
+    icon = QIcon()
+    for color, mode, state in (
+        (normal_color, QIcon.Normal, QIcon.Off),
+        (active_color, QIcon.Normal, QIcon.On),
+        (active_color, QIcon.Selected, QIcon.On),
+    ):
+        pm = _recolor_svg(svg_path, color, size)
+        if not pm.isNull():
+            icon.addPixmap(pm, mode, state)
+    return icon
+
+
 class SidebarButton(QPushButton):
     """Navigation button for the sidebar with active-state styling."""
 
@@ -24,7 +71,7 @@ class SidebarButton(QPushButton):
         self.setMinimumHeight(40)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         if icon_path:
-            self.setIcon(QIcon(icon_path))
+            self.setIcon(load_themed_icon(icon_path))
             self.setIconSize(QSize(20, 20))
 
     def set_active(self, active: bool) -> None:
@@ -62,7 +109,8 @@ class PipelineProgressBar(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(12, 4, 12, 4)
+        layout.setSpacing(2)
 
         self._stage_label = QLabel("Ready")
         self._stage_label.setObjectName("subtitle")
@@ -72,6 +120,7 @@ class PipelineProgressBar(QWidget):
         self._progress_bar.setRange(0, 100)
         self._progress_bar.setValue(0)
         self._progress_bar.setTextVisible(True)
+        self._progress_bar.setFixedHeight(18)
         layout.addWidget(self._progress_bar)
 
         self._detail_label = QLabel("")
@@ -121,6 +170,7 @@ class DropZone(QFrame):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setMinimumHeight(180)
+        self.setMaximumHeight(220)
         self.setFrameShape(QFrame.StyledPanel)
         self.setObjectName("dropZone")
         self.setStyleSheet("""
@@ -128,6 +178,7 @@ class DropZone(QFrame):
                 border: 2px dashed #7c6ff0;
                 border-radius: 12px;
                 background-color: rgba(124, 111, 240, 0.04);
+                margin-bottom: 4px;
             }
             QFrame#dropZone[drag_active="true"] {
                 border-color: #9488f5;
@@ -136,6 +187,7 @@ class DropZone(QFrame):
         """)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 20, 16, 20)
         layout.setAlignment(Qt.AlignCenter)
 
         icon_label = QLabel("Drop files here")
@@ -197,14 +249,16 @@ class StatusCard(QFrame):
                 padding: 12px;
             }
         """)
-        self.setMinimumWidth(140)
+        self.setMinimumWidth(150)
+        self.setMinimumHeight(80)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setContentsMargins(14, 10, 14, 10)
         layout.setSpacing(4)
 
         self._title = QLabel(title)
         self._title.setObjectName("subtitle")
+        self._title.setWordWrap(True)
         layout.addWidget(self._title)
 
         self._value = QLabel(value)

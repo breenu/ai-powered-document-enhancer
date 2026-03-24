@@ -29,6 +29,20 @@ class Summarizer:
     def __init__(self):
         self._abstractive_model = None
         self._abstractive_tokenizer = None
+        self._ensure_nltk_data()
+
+    @staticmethod
+    def _ensure_nltk_data() -> None:
+        """Download required NLTK tokenizer data if not already present."""
+        import nltk
+        for resource in ("punkt", "punkt_tab"):
+            try:
+                nltk.data.find(f"tokenizers/{resource}")
+            except LookupError:
+                try:
+                    nltk.download(resource, quiet=True)
+                except Exception:
+                    pass
 
     def extractive(self, text: str, sentence_count: int = 5) -> SummaryResult:
         from sumy.nlp.tokenizers import Tokenizer

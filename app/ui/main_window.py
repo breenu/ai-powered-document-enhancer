@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
 
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)
-        self._status_bar.showMessage("Ready")
+        self._status_bar.setVisible(False)
 
     def _build_sidebar(self) -> QWidget:
         sidebar = QWidget()
@@ -277,10 +277,11 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget()
         self.stack.setObjectName("pageStack")
-        layout.addWidget(self.stack)
+        layout.addWidget(self.stack, stretch=1)
 
         self._progress_widget = PipelineProgressBar()
         self._progress_widget.setVisible(False)
+        self._progress_widget.setFixedHeight(60)
         layout.addWidget(self._progress_widget)
 
         self._register_pages()
@@ -410,6 +411,9 @@ class MainWindow(QMainWindow):
 
         self._progress_widget.mark_complete()
 
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(1500, self.hide_progress)
+
         self._preview_page.set_data(self._current_images, document)
         self._editor_page.set_document(document)
         self._enhance_page.set_document(document)
@@ -521,7 +525,6 @@ class MainWindow(QMainWindow):
         for key, btn in self._nav_buttons.items():
             btn.set_active(key == page_key)
 
-        self._status_bar.showMessage(f"Page: {page_key.capitalize()}")
         self.page_changed.emit(page_key)
         logger.debug("Navigated to %s", page_key)
 
