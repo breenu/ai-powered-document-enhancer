@@ -1,0 +1,25 @@
+{
+  "name": "Report",
+  "description": "Professional report format with clear section headings and left-aligned text.",
+  "font_name": "Calibri",
+  "font_size": 11,
+  "line_spacing": 1.5,
+  "heading_font_size": 18,
+  "margin_inches": 1.0,
+  "alignment": "left",
+  "first_line_indent": 0.0,
+  "header_text": "",
+  "footer_text": "",
+  "sections": [
+    "Title Page",
+    "Executive Summary",
+    "Introduction",
+    "Methodology",
+    "Findings",
+    "Analysis",
+    "Recommendations",
+    "Conclusion",
+    "Appendices"
+  ],
+  "style_notes": "1.5-spaced body text with no first-line indent. Large 18pt headings in Calibri, body is 11pt left-aligned."
+}

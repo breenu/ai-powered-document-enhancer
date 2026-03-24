@@ -1,0 +1,26 @@
+{
+  "name": "Research Paper",
+  "description": "Academic research paper format following standard scholarly conventions.",
+  "font_name": "Times New Roman",
+  "font_size": 12,
+  "line_spacing": 2.0,
+  "heading_font_size": 14,
+  "margin_inches": 1.0,
+  "alignment": "justify",
+  "first_line_indent": 0.5,
+  "header_text": "",
+  "footer_text": "",
+  "sections": [
+    "Title",
+    "Abstract",
+    "Introduction",
+    "Literature Review",
+    "Methodology",
+    "Results",
+    "Discussion",
+    "Conclusion",
+    "References",
+    "Appendices"
+  ],
+  "style_notes": "Double-spaced body in 12pt Times New Roman, justified. Headings are 14pt. First-line indent of 0.5 inches. Follows APA-style section ordering."
+}

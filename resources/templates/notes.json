@@ -1,0 +1,22 @@
+{
+  "name": "Notes",
+  "description": "Compact note-taking format with concise layout for meeting notes and quick references.",
+  "font_name": "Calibri",
+  "font_size": 11,
+  "line_spacing": 1.15,
+  "heading_font_size": 16,
+  "margin_inches": 1.0,
+  "alignment": "left",
+  "first_line_indent": 0.0,
+  "header_text": "",
+  "footer_text": "",
+  "sections": [
+    "Title / Topic",
+    "Date",
+    "Key Points",
+    "Details",
+    "Action Items",
+    "Follow-Up"
+  ],
+  "style_notes": "Compact 1.15 spacing in 11pt Calibri, left-aligned. Designed for bullet-style content and quick-reference notes."
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Letter",
+  "description": "Formal business letter format with standard block layout.",
+  "font_name": "Arial",
+  "font_size": 12,
+  "line_spacing": 1.15,
+  "heading_font_size": 16,
+  "margin_inches": 1.0,
+  "alignment": "left",
+  "first_line_indent": 0.0,
+  "header_text": "",
+  "footer_text": "",
+  "sections": [
+    "Sender Address",
+    "Date",
+    "Recipient Address",
+    "Salutation",
+    "Body",
+    "Closing",
+    "Signature"
+  ],
+  "style_notes": "Single-spaced body in 12pt Arial, left-aligned. No first-line indent. Compact 1.15 line spacing for business correspondence."
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Essay",
+  "description": "Standard academic essay format with double spacing and paragraph indentation.",
+  "font_name": "Times New Roman",
+  "font_size": 12,
+  "line_spacing": 2.0,
+  "heading_font_size": 16,
+  "margin_inches": 1.0,
+  "alignment": "justify",
+  "first_line_indent": 0.5,
+  "header_text": "",
+  "footer_text": "",
+  "sections": [
+    "Title",
+    "Introduction",
+    "Body",
+    "Conclusion",
+    "References"
+  ],
+  "style_notes": "Double-spaced body text with 0.5-inch first-line indentation. Headings are 16pt, body is 12pt Times New Roman justified."
+}

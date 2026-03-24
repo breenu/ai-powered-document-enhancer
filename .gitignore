@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# PyInstaller (track the project spec; ignore auto-generated ones)
+# ai_document_enhancer.spec is tracked intentionally
+
+# Tesseract / temp
+*.tmp
+*.log
+
+# Database
+*.db
+*.sqlite3
+
+# Secrets
+.env
+*.pem
+*.key
