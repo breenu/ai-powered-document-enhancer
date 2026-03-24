@@ -261,8 +261,7 @@ SE_project/
 ├── tests/
 │   ├── test_pipeline.py        # Unit tests for each core module
 │   ├── test_ui.py              # PySide6 UI tests (pytest-qt)
-│   ├── test_mutation.py        # Mutation tests (mutmut)
-│   └── ...
+│   └── conftest.py             # Shared pytest fixtures
 ├── .github/workflows/ci_cd.yml # GitHub Actions CI/CD pipeline
 ├── main.py                     # Application entry point
 ├── ai_document_enhancer.spec   # PyInstaller build specification
@@ -288,15 +287,6 @@ pytest tests/test_ui.py -v
 
 # Linux (headless)
 xvfb-run pytest tests/test_ui.py -v
-```
-
-### Mutation Testing
-
-```bash
-mutmut run --paths-to-mutate=app/core/order_calculation.py \
-           --tests-dir=tests/ \
-           --runner="python -m pytest tests/test_mutation.py -x -q"
-mutmut results
 ```
 
 ---
