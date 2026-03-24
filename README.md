@@ -14,10 +14,9 @@ A desktop application built with PySide6 that transforms scanned document images
 6. [Pipeline Stages](#pipeline-stages)
 7. [Configuration](#configuration)
 8. [Project Structure](#project-structure)
-9. [Testing](#testing)
-10. [Development Setup](#development-setup)
-11. [Troubleshooting](#troubleshooting)
-12. [License](#license)
+9. [Development Setup](#development-setup)
+10. [Troubleshooting](#troubleshooting)
+11. [License](#license)
 
 ---
 
@@ -98,8 +97,6 @@ venv\Scripts\activate        # Windows (PowerShell / CMD)
 # Install all dependencies
 pip install -r requirements.txt
 ```
-
-> **Tip:** On machines without a GPU, PyTorch will install the CPU-only variant automatically. The summarizer and paraphraser models (DistilBART, T5) run on CPU by default.
 
 ### Step 3 — Build the Windows Executable
 
@@ -271,45 +268,6 @@ SE_project/
 
 ---
 
-## Testing
-
-Automated tests live in `tests/test_pipeline.py` (core pipeline, file handling, export, and end-to-end flows). External tools (Tesseract, LanguageTool, Hugging Face models) are mocked where noted so the suite runs in CI without local installs.
-
-### Test case summary
-
-Representative scenarios verified by the automated suite:
-
-| Test Case | Input | Expected Output | Result |
-|-----------|--------|-----------------|--------|
-| TC1 | Synthetic scanned image | Preprocessing yields valid grayscale/binary image; skew angle is numeric | Pass |
-| TC2 | Grayscale image with mocked Tesseract | OCR returns text, average confidence, and per-word confidences | Pass |
-| TC3 | Text with grammar issues and mocked LanguageTool | Grammar enhancement returns corrected text and correction list | Pass |
-| TC4 | Multi-sentence body text | Readability metrics (e.g. Flesch) and optimized text where rules apply | Pass |
-| TC5 | Long text with mocked extractive summarizer | Non-empty summary and key points | Pass |
-| TC6 | Document text vs local reference corpus | Plagiarism score; near-duplicate text scores above threshold | Pass |
-| TC7 | Essay / report / letter sample text | Document type detected; template applied; DOCX file written | Pass |
-| TC8 | PNG load → full pipeline (mocked stages) → export | Status COMPLETED; non-empty DOCX and PDF on disk | Pass |
-| TC9 | Missing, empty, or unsupported file | File validation fails with an explicit error message | Pass |
-| TC10 | Simulated failure during preprocessing | Document status FAILED; processing state records the error | Pass |
-
-### Unit Tests
-
-```bash
-pytest tests/ -v --cov=app --cov-report=term-missing
-```
-
-### UI Tests (requires a display or Xvfb on Linux)
-
-```bash
-# Windows / macOS (native display)
-pytest tests/test_ui.py -v
-
-# Linux (headless)
-xvfb-run pytest tests/test_ui.py -v
-```
-
----
-
 ## Development Setup
 
 If you want to run the application from source (without building an `.exe`) for development or debugging purposes:
@@ -343,4 +301,4 @@ This launches the application directly via Python. Any code changes take effect 
 
 ## License
 
-This project is developed for educational purposes as part of a Software Engineering course assignment.
+This project is developed for educational purposes.
